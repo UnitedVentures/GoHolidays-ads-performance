@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="goholidaysicon.svg">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -74,13 +75,9 @@
   }
   .logo-icon {
     width: 32px; height: 32px;
-    background: var(--accent2);
+    background: var(--surface);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: -0.05em;
   }
   .logo-text { font-size: 15px; font-weight: 600; color: #fff; }
   .logo-sub  { font-size: 11px; color: rgba(255,255,255,0.6); font-family: var(--mono); }
@@ -342,7 +339,8 @@
 
 <header>
   <div class="logo">
-    <div class="logo-icon">GH</div>
+    <!-- <div class="logo-icon">GH</div> -->
+    <img src="goholidaysicon.svg" class="logo-icon">
     <div>
       <div class="logo-text">Go Holidays</div>
       <div class="logo-sub">Meta Intelligence Dashboard</div>
