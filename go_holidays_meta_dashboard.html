@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Go Holidays · Meta Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f0f4ec;
+    --bg2:       #e8eed f;
+    --surface:   #ffffff;
+    --border:    #d4dfc6;
+    --text:      #1c2214;
+    --muted:     #6b7a58;
+    --accent:    #5D6A3A;
+    --accent2:   #B0C854;
+    --accent2-dim: #B0C85430;
+    --accent-dim: #5D6A3A18;
+    --success:   #2d7a3a;
+    --warning:   #a06a10;
+    --danger:    #c04030;
+    --radius:    12px;
+    --radius-sm: 8px;
+    --font:      'Outfit', sans-serif;
+    --mono:      'JetBrains Mono', monospace;
+    --shadow:    0 1px 4px rgba(93,106,58,0.08), 0 4px 16px rgba(93,106,58,0.06);
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* leafy background pattern */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(176,200,84,0.07) 0%, transparent 50%),
+      radial-gradient(circle at 85% 80%, rgba(93,106,58,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--accent);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 58px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(93,106,58,0.3);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.05em;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; color: #fff; }
+  .logo-sub  { font-size: 11px; color: rgba(255,255,255,0.6); font-family: var(--mono); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .header-meta { font-size: 11px; color: rgba(255,255,255,0.65); font-family: var(--mono); }
+  .refresh-btn {
+    font-size: 11px; padding: 5px 12px; background: rgba(255,255,255,0.15);
+    color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 99px;
+    cursor: pointer; font-family: var(--font); transition: all 0.15s;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.25); }
+
+  /* ── Layout ── */
+  .container { max-width: 1280px; margin: 0 auto; padding: 2rem; position: relative; z-index: 1; }
+
+  /* ── Setup screen ── */
+  .setup-wrap {
+    display: flex; align-items: flex-start; gap: 2rem;
+    max-width: 900px; margin: 3rem auto;
+  }
+  .setup-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    flex: 1;
+    box-shadow: var(--shadow);
+  }
+  .setup-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 0.4rem; }
+  .setup-card .sub { color: var(--muted); font-size: 13px; margin-bottom: 1.75rem; line-height: 1.6; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .field input, .field select {
+    width: 100%; padding: 10px 13px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-family: var(--mono); font-size: 12px;
+    background: var(--bg); color: var(--text); outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent2); }
+  .btn-primary {
+    width: 100%; padding: 12px; background: var(--accent); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-family: var(--font);
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary:hover { background: #4a5530; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(93,106,58,0.3); }
+
+  .setup-info {
+    background: var(--accent-dim); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.5rem; width: 260px; flex-shrink: 0;
+  }
+  .setup-info h3 { font-size: 13px; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent); }
+  .setup-info li { font-size: 12px; color: var(--muted); margin-bottom: 6px; margin-left: 1rem; line-height: 1.5; }
+
+  /* ── Loading ── */
+  #loadingScreen { display: none; text-align: center; padding: 6rem 2rem; }
+  .spinner {
+    width: 40px; height: 40px; border: 2.5px solid var(--border);
+    border-top-color: var(--accent2); border-radius: 50%;
+    animation: spin 0.75s linear infinite; margin: 0 auto 1.25rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--muted); font-size: 13px; }
+  .loading-step { font-size: 11px; color: var(--accent2); font-family: var(--mono); margin-top: 8px; }
+
+  /* ── Dashboard ── */
+  #dashboard { display: none; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 2rem 0 0.75rem; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── Tabs ── */
+  .main-tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
+  .main-tab {
+    padding: 10px 18px; font-size: 13px; font-weight: 500;
+    color: var(--muted); border: none; background: transparent;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all 0.2s; font-family: var(--font);
+  }
+  .main-tab.active { color: var(--accent); border-bottom-color: var(--accent2); font-weight: 600; }
+  .main-tab:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Metric cards ── */
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.2rem;
+    box-shadow: var(--shadow); transition: transform 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .metric-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .metric-card:hover { transform: translateY(-2px); }
+  .metric-card .m-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .metric-card .m-value { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--accent); }
+  .metric-card .m-sub { font-size: 11px; color: var(--muted); margin-top: 5px; font-family: var(--mono); }
+
+  /* ── Chart card ── */
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem 1.6rem; margin-top: 1rem;
+    box-shadow: var(--shadow);
+  }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 8px; }
+  .chart-title { font-size: 14px; font-weight: 600; }
+  .tab-group { display: flex; gap: 4px; }
+  .tab-btn {
+    font-size: 11px; padding: 5px 14px; border-radius: 99px;
+    border: 1.5px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; font-family: var(--font);
+    transition: all 0.15s; font-weight: 500;
+  }
+  .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab-btn:hover:not(.active) { border-color: var(--accent2); color: var(--accent); }
+  .chart-wrap { position: relative; height: 230px; }
+
+  /* ── Table ── */
+  .table-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-top: 1rem;
+    box-shadow: var(--shadow);
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 11px 15px; font-size: 11px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border); background: var(--bg); white-space: nowrap;
+  }
+  tbody td { padding: 12px 15px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--accent-dim); }
+  .camp-name { font-weight: 500; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dest-tag {
+    display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 99px; background: var(--accent2-dim); color: var(--accent);
+    font-family: var(--mono); margin-left: 4px;
+  }
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 99px; text-transform: uppercase; letter-spacing: 0.04em;
+    font-family: var(--mono);
+  }
+  .badge-active  { background: #e6f4eb; color: var(--success); }
+  .badge-paused  { background: #fef4e0; color: var(--warning); }
+  .badge-deleted { background: #fdecea; color: var(--danger); }
+  .num { font-family: var(--mono); }
+  .good { color: var(--success); }
+  .bad  { color: var(--danger); }
+
+  /* ── Destination grid ── */
+  .dest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 1rem; }
+  .dest-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.2rem;
+    box-shadow: var(--shadow); transition: transform 0.2s;
+  }
+  .dest-card:hover { transform: translateY(-2px); }
+  .dest-card .dest-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; color: var(--accent); }
+  .dest-card .dest-spend { font-size: 22px; font-weight: 700; font-family: var(--mono); letter-spacing: -0.03em; }
+  .dest-card .dest-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .dest-card .dest-bar-wrap { height: 4px; background: var(--border); border-radius: 99px; margin-top: 10px; }
+  .dest-card .dest-bar { height: 4px; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .dest-perf {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 99px; display: inline-block; margin-top: 6px;
+    font-family: var(--mono);
+  }
+  .perf-top    { background: #e6f4eb; color: var(--success); }
+  .perf-mid    { background: #fef4e0; color: var(--warning); }
+  .perf-low    { background: #fdecea; color: var(--danger); }
+
+  /* ── Insights ── */
+  .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px; margin-top: 1rem; }
+  .insight-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.2rem;
+    display: flex; gap: 12px; align-items: flex-start;
+    box-shadow: var(--shadow);
+  }
+  .insight-icon { font-size: 20px; flex-shrink: 0; line-height: 1.3; }
+  .insight-body .insight-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .insight-body .insight-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  /* ── Page insights ── */
+  .page-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .page-metric {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.2rem;
+    box-shadow: var(--shadow);
+  }
+  .page-metric .pm-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .page-metric .pm-value { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--accent); }
+  .page-metric .pm-sub { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+  .pm-organic { border-left: 3px solid var(--accent2); }
+  .pm-paid    { border-left: 3px solid var(--accent); }
+
+  .posts-table { margin-top: 1rem; }
+
+  /* ── Date filter bar ── */
+  .date-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 16px; margin-bottom: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+  .date-bar-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  .date-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+  .date-chip {
+    font-size: 12px; font-weight: 500; padding: 5px 14px; border-radius: 99px;
+    border: 1.5px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; font-family: var(--font);
+    transition: all 0.15s;
+  }
+  .date-chip:hover:not(.active) { border-color: var(--accent2); color: var(--accent); }
+  .date-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .date-bar-range { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-left: auto; white-space: nowrap; }
+
+  /* ── Error ── */
+  .error-banner {
+    background: #fdecea; border: 1px solid #f5c6c2; border-radius: var(--radius);
+    padding: 1rem 1.25rem; color: var(--danger); font-size: 13px; margin-top: 1rem;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0.5rem 0; }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  .no-data { text-align: center; padding: 2.5rem; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 640px) {
+    .container { padding: 1rem; }
+    .setup-wrap { flex-direction: column; }
+    .setup-info { width: 100%; }
+    header { padding: 0 1rem; }
+    .metric-card .m-value { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">GH</div>
+    <div>
+      <div class="logo-text">Go Holidays</div>
+      <div class="logo-sub">Meta Intelligence Dashboard</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-meta" id="headerMeta">Not connected</div>
+    <button class="refresh-btn" onclick="refreshAll()" style="display:none" id="refreshBtn">↻ Refresh</button>
+  </div>
+</header>
+
+<!-- Setup screen -->
+<div class="container" id="setupScreen">
+  <div class="setup-wrap">
+    <div class="setup-card">
+      <h2 id="setupTitle">Connect Go Holidays Meta Account</h2>
+      <p class="sub" id="setupDesc">Paste your new Google Apps Script proxy URL below to reconnect. This dashboard will remember it for next time.</p>
+
+      <div class="field">
+        <label>Proxy URL (Google Apps Script)</label>
+        <input type="text" id="proxyUrl" placeholder="https://script.google.com/macros/s/…/exec" />
+      </div>
+      <button class="btn-primary" onclick="connect()">Connect & Load Data</button>
+      <p id="setupError" style="margin-top:1rem;font-size:12px;color:var(--danger);display:none;"></p>
+    </div>
+
+    <div class="setup-info">
+      <h3>📋 What you'll see</h3>
+      <ul>
+        <li>Account-level spend, CTR, CPC, reach</li>
+        <li>All campaigns with per-campaign metrics</li>
+        <li>Destination-level breakdown & performance ranking</li>
+        <li>AI insights per destination</li>
+        <li>Page reach & engagement (organic + paid)</li>
+        <li>Post & reel performance</li>
+        <li>AI analyst chat with full data context</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="container" id="loadingScreen">
+  <div class="spinner"></div>
+  <p class="loading-text">Loading your campaign data…</p>
+  <p class="loading-step" id="loadingStep">Connecting to Meta API…</p>
+</div>
+
+<!-- Dashboard -->
+<div class="container" id="dashboard">
+
+  <div class="main-tabs" id="mainTabs">
+    <button class="main-tab active" onclick="showTab('ads')">📊 Ads Performance</button>
+    <button class="main-tab" onclick="showTab('destinations')">✈️ Destinations</button>
+    <button class="main-tab" onclick="showTab('page')">📱 Page Insights</button>
+  </div>
+
+  <!-- ── Date filter bar ── -->
+  <div class="date-bar">
+    <span class="date-bar-label">Showing:</span>
+    <div class="date-chips">
+      <button class="date-chip" onclick="applyDateFilter('last_7d',this)">7 days</button>
+      <button class="date-chip" onclick="applyDateFilter('last_30d',this)">30 days</button>
+      <button class="date-chip active" onclick="applyDateFilter('last_90d',this)">3 months</button>
+      <button class="date-chip" onclick="applyDateFilter('last_month',this)">Last month</button>
+      <button class="date-chip" onclick="applyDateFilter('this_month',this)">This month</button>
+    </div>
+    <span class="date-bar-range" id="dateRangeDisplay"></span>
+  </div>
+
+  <!-- ── ADS TAB ── -->
+  <div class="tab-panel active" id="tab-ads">
+    <p class="section-label">Account overview · <span id="dateLabel">last 30 days</span></p>
+    <div class="metric-grid" id="metricGrid"></div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Performance Trend</span>
+        <div class="tab-group">
+          <button class="tab-btn active" onclick="switchChart('spend',this)">Spend</button>
+          <button class="tab-btn" onclick="switchChart('clicks',this)">Clicks</button>
+          <button class="tab-btn" onclick="switchChart('impressions',this)">Impressions</button>
+          <button class="tab-btn" onclick="switchChart('reach',this)">Reach</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <p class="section-label" id="campLabel">Campaigns</p>
+    <div class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Campaign</th>
+              <th>Destination</th>
+              <th>Status</th>
+              <th>Spend ($)</th>
+              <th>Impressions</th>
+              <th>Clicks</th>
+              <th>CTR</th>
+              <th>CPC ($)</th>
+              <th>Reach</th>
+              <th>Conversions</th>
+            </tr>
+          </thead>
+          <tbody id="campTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="section-label">Performance Insights</p>
+    <div class="insights-grid" id="insightsGrid"></div>
+  </div>
+
+  <!-- ── DESTINATIONS TAB ── -->
+  <div class="tab-panel" id="tab-destinations">
+    <p class="section-label">Destination performance · spend & engagement breakdown</p>
+    <div class="dest-grid" id="destGrid"></div>
+
+    <div class="chart-card" style="margin-top:1.5rem">
+      <div class="chart-header">
+        <span class="chart-title">Destination Comparison</span>
+        <div class="tab-group">
+          <button class="tab-btn active" onclick="switchDestChart('spend',this)">Spend</button>
+          <button class="tab-btn" onclick="switchDestChart('clicks',this)">Clicks</button>
+          <button class="tab-btn" onclick="switchDestChart('ctr',this)">CTR</button>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="destChart"></canvas>
+      </div>
+    </div>
+
+    <p class="section-label">AI Destination Insights</p>
+    <div class="insights-grid" id="destInsightsGrid"></div>
+  </div>
+
+  <!-- ── PAGE INSIGHTS TAB ── -->
+  <div class="tab-panel" id="tab-page">
+    <p class="section-label">Page reach & engagement · organic + paid</p>
+    <div class="page-grid" id="pageGrid"></div>
+
+    <p class="section-label" style="margin-top:1.5rem">Recent Posts & Reels</p>
+    <div class="table-card posts-table">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Post / Reel</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Reach</th>
+              <th>Impressions</th>
+              <th>Engagement</th>
+              <th>Likes</th>
+              <th>Comments</th>
+              <th>Shares</th>
+            </tr>
+          </thead>
+          <tbody id="postsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-top:1rem">
+      <div class="chart-header">
+        <span class="chart-title">Post Reach Over Time</span>
+        <div class="tab-group">
+          <button class="tab-btn active" onclick="switchPageChart('reach',this)">Reach</button>
+          <button class="tab-btn" onclick="switchPageChart('engagement',this)">Engagement</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="pageChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+// ── Constants & state ─────────────────────────────────────
+const AD_ACCOUNT = '2602144826465100';
+const TOKEN      = 'EABAKU723AnIBRgi6TiNLtMYb0fR9A3mJLZByBlsqIQHNWOKij0kHEPSsZBgepCEPW8EipQ2MyVk57QZAsAY4tY7qgZCYRSQLWX6WvH2IWi9uO4kSh7JTSZCcZBkFTdqzGp4yQJscvXeC4rBq95Y1GZBhG9ZBS5oFx0UjZBmRTfZAw4l2yMTFgJan6XvYophUUZB7v6l';
+const GRAPH      = 'https://graph.facebook.com/v19.0';
+
+// Go Holidays destination keywords for campaign name matching
+const DEST_KEYWORDS = {
+  'Vietnam':    ['vietnam','viet','ho chi','hanoi','da nang','hoi an'],
+  'Malaysia':   ['malaysia','kuala lumpur','kl','penang','langkawi'],
+  'Dubai':      ['dubai','uae','abu dhabi'],
+  'Thailand':   ['thailand','bangkok','phuket','pattaya','chiang mai'],
+  'Singapore':  ['singapore','sg','sentosa'],
+  'Bali':       ['bali','indonesia','lombok'],
+  'Japan':      ['japan','tokyo','osaka','kyoto'],
+  'India':      ['india','delhi','mumbai','goa','agra','rajasthan'],
+  'Kerala':     ['kerala','kochi','munnar','alleppey','trivandrum'],
+  'Shimla':     ['shimla','manali','himachal','kashmir'],
+  'Sri Lanka':  ['sri lanka','colombo','kandy','ella','galle'],
+  'Europe':     ['europe','paris','london','rome','amsterdam','swiss'],
+  'Maldives':   ['maldives','male'],
+  'Other':      []
+};
+
+const DEFAULT_PROXY = 'https://script.google.com/macros/s/AKfycby_nsvnyWcm8g7M8C-8ciPvETBb4G_cXokmHnnvrwre_rpBb0bB_AEBWFlOPgGxLIWh/exec';
+let PROXY_URL  = localStorage.getItem('gh_proxy_url') || DEFAULT_PROXY;
+let globalData = {};
+let trendChart = null, destChartObj = null, pageChartObj = null;
+let trendDaily = [];
+let allDailyData    = []; // full 6-month daily cache
+let allCampaignData = []; // full campaign list cache
+let currentChartMetric = 'spend';
+let destData   = {};
+let pagePosts  = [];
+let pageInsightsData = {};
+
+// ── Helpers ────────────────────────────────────────────────
+function bigNum(n) {
+  const v = parseInt(n) || 0;
+  return v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'K' : v.toLocaleString();
+}
+function pct(n) { return (parseFloat(n)||0).toFixed(2) + '%'; }
+function dollar(n) { return '$' + (parseFloat(n)||0).toFixed(2); }
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+function getConversions(actions) {
+  if (!actions) return 0;
+  const types = ['purchase','lead','complete_registration','add_to_cart','contact','messaging_conversation_started_7d'];
+  return actions.filter(a => types.some(t => a.action_type?.includes(t))).reduce((s,a) => s + parseInt(a.value||0), 0);
+}
+
+function detectDestination(name) {
+  const lower = (name||'').toLowerCase();
+  for (const [dest, keywords] of Object.entries(DEST_KEYWORDS)) {
+    if (dest === 'Other') continue;
+    if (keywords.some(k => lower.includes(k))) return dest;
+  }
+  return 'Other';
+}
+
+function setStep(msg) {
+  const el = document.getElementById('loadingStep');
+  if (el) el.textContent = msg;
+}
+
+// ── Main entry ─────────────────────────────────────────────
+
+// Auto-load using saved/default proxy on startup
+window.addEventListener('DOMContentLoaded', () => {
+  hide('setupScreen');
+  show('loadingScreen');
+  loadAll();
+});
+
+function connect() {
+  const url = document.getElementById('proxyUrl').value.trim();
+  if (!url || !url.startsWith('https://')) {
+    const err = document.getElementById('setupError');
+    err.textContent = 'Please enter a valid proxy URL starting with https://';
+    err.style.display = 'block';
+    return;
+  }
+  PROXY_URL = url;
+  localStorage.setItem('gh_proxy_url', url); // remember for next time
+  hide('setupScreen');
+  show('loadingScreen');
+  loadAll();
+}
+
+function showExpiredPrompt(errMessage) {
+  // Surface the setup screen with an expired-URL message
+  document.getElementById('setupTitle').textContent = '🔗 Proxy URL Expired — Update Required';
+  document.getElementById('setupDesc').textContent =
+    'The current proxy URL is no longer working (' + errMessage + '). Paste your new Google Apps Script deployment URL below and it will be saved automatically.';
+  document.getElementById('proxyUrl').value = '';
+  document.getElementById('proxyUrl').placeholder = 'Paste new https://script.google.com/… URL here';
+  hide('loadingScreen');
+  hide('dashboard');
+  show('setupScreen');
+}
+
+async function refreshAll() {
+  show('loadingScreen');
+  hide('dashboard');
+  await loadAll();
+}
+
+async function loadAll() {
+  try {
+    // Try last_6m first, fall back to last_90d if unsupported
+    let fetchPreset = 'last_6m';
+    setStep('Fetching 6 months of data…');
+
+    let summary, campaigns, daily;
+    try {
+      [summary, campaigns, daily] = await Promise.all([
+        fetchMeta(`act_${AD_ACCOUNT}/insights`, {
+          fields: 'spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions',
+          date_preset: fetchPreset
+        }),
+        fetchCampaigns(fetchPreset),
+        fetchMeta(`act_${AD_ACCOUNT}/insights`, {
+          fields: 'spend,impressions,clicks,reach',
+          date_preset: fetchPreset,
+          time_increment: 1, limit: 186
+        })
+      ]);
+    } catch (_) {
+      // last_6m not supported by this token/account — fall back to last_90d
+      fetchPreset = 'last_90d';
+      setStep('Fetching 4 months of data…');
+      [summary, campaigns, daily] = await Promise.all([
+        fetchMeta(`act_${AD_ACCOUNT}/insights`, {
+          fields: 'spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions',
+          date_preset: fetchPreset
+        }),
+        fetchCampaigns(fetchPreset),
+        fetchMeta(`act_${AD_ACCOUNT}/insights`, {
+          fields: 'spend,impressions,clicks,reach',
+          date_preset: fetchPreset,
+          time_increment: 1, limit: 92
+        })
+      ]);
+    }
+
+    setStep('Fetching page insights…');
+    const [pageMetrics, posts] = await Promise.all([
+      fetchPageInsights(),
+      fetchPagePosts()
+    ]);
+
+    // Cache the full dataset
+    allDailyData    = daily?.data || [];
+    allCampaignData = campaigns;
+
+    globalData = {
+      summary:   summary?.data?.[0] || {},
+      campaigns: campaigns,
+      daily:     allDailyData
+    };
+
+    pageInsightsData = pageMetrics;
+    pagePosts        = posts;
+
+    // Apply default 3-month view from cached data
+    setStep('Building dashboard…');
+    const initFiltered = filterDailyByPreset(allDailyData, activePreset);
+    trendDaily = initFiltered;
+    const initCamps   = filterCampaignsByPreset(allCampaignData, activePreset);
+    buildDestinationData(initCamps);
+
+    hide('loadingScreen');
+    show('dashboard');
+    document.getElementById('refreshBtn').style.display = 'block';
+
+    updateDateDisplay();
+    document.getElementById('headerMeta').textContent = 'act_' + AD_ACCOUNT + '  ·  ' + fetchPreset.replace(/_/g,' ') + ' loaded';
+
+    renderMetrics(summariseDaily(initFiltered), initCamps);
+    renderChart(initFiltered, 'spend');
+    renderCampaigns(initCamps);
+    renderInsights(summariseDaily(initFiltered), initCamps);
+    renderDestinations();
+    renderPageInsights();
+    renderPosts();
+
+  } catch (err) {
+    hide('loadingScreen');
+    showExpiredPrompt(err.message || 'Unknown error');
+  }
+}
+
+// ── Active date filter (applied in-app, no reload) ────────
+let activePreset = 'last_90d'; // default view after full data loads
+
+function getDatePreset() {
+  return activePreset;
+}
+
+// Called when user clicks a date chip — re-renders from cached data, no new fetch
+function applyDateFilter(preset, btn) {
+  activePreset = preset;
+  document.querySelectorAll('.date-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateDateDisplay();
+
+  // Filter the cached daily data and re-render all sections
+  const filtered = filterDailyByPreset(allDailyData, preset);
+  trendDaily = filtered;
+  const filteredSummary = summariseDaily(filtered);
+  const filteredCamps   = filterCampaignsByPreset(allCampaignData, preset);
+
+  renderMetrics(filteredSummary, filteredCamps);
+  renderChart(filtered, currentChartMetric);
+  renderCampaigns(filteredCamps);
+  renderInsights(filteredSummary, filteredCamps);
+  buildDestinationData(filteredCamps);
+  renderDestinations();
+}
+
+// ── Data filtering helpers (client-side, no re-fetch) ─────
+
+function presetToDays(preset) {
+  const map = { last_7d:7, last_30d:30, last_90d:90, last_6m:180, this_month:31, last_month:31 };
+  return map[preset] || 90;
+}
+
+function filterDailyByPreset(daily, preset) {
+  if (!daily || !daily.length) return [];
+  const days = presetToDays(preset);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  return daily.filter(d => (d.date_start || '') >= cutoffStr);
+}
+
+function filterCampaignsByPreset(camps, preset) {
+  // Campaign insights are fetched for the full period; for sub-period views
+  // we return all campaigns but note the filter is approximate (Meta doesn't
+  // support sub-filtering campaign insights without a new API call).
+  return camps || [];
+}
+
+function summariseDaily(daily) {
+  // Aggregate daily rows into a summary object matching Meta's summary shape
+  let spend = 0, impressions = 0, clicks = 0, reach = 0;
+  daily.forEach(d => {
+    spend       += parseFloat(d.spend || 0);
+    impressions += parseInt(d.impressions || 0);
+    clicks      += parseInt(d.clicks || 0);
+    reach       += parseInt(d.reach || 0);
+  });
+  const ctr = impressions > 0 ? (clicks / impressions * 100) : 0;
+  const cpc = clicks > 0 ? (spend / clicks) : 0;
+  const cpm = impressions > 0 ? (spend / impressions * 1000) : 0;
+  return { spend, impressions, clicks, reach, ctr, cpc, cpm };
+}
+
+function updateDateDisplay() {
+  const labels = {
+    last_7d: 'Last 7 days', last_30d: 'Last 30 days', last_90d: 'Last 3 months',
+    last_6m: 'Last 6 months', this_month: 'This month', last_month: 'Last month'
+  };
+  const label = labels[activePreset] || activePreset;
+  const el = document.getElementById('dateRangeDisplay');
+  if (el) el.textContent = label;
+  const dl = document.getElementById('dateLabel');
+  if (dl) dl.textContent = label.toLowerCase();
+}
+
+// ── Meta API fetch via proxy ───────────────────────────────
+async function fetchMeta(path, params) {
+  const qs = Object.entries(params).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  const url = `${PROXY_URL}?path=${encodeURIComponent(path)}&${qs}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  return data;
+}
+
+async function fetchCampaigns(preset) {
+  preset = preset || 'last_90d';
+  setStep('Fetching campaigns…');
+  const camps = await fetchMeta(`act_${AD_ACCOUNT}/campaigns`, {
+    fields: 'id,name,status,objective,daily_budget,lifetime_budget',
+    limit: 50
+  });
+  const list = camps.data || [];
+
+  setStep('Fetching campaign insights…');
+  return Promise.all(list.map(async c => {
+    try {
+      const ins = await fetchMeta(`${c.id}/insights`, {
+        fields: 'spend,impressions,clicks,ctr,cpc,reach,actions',
+        date_preset: preset
+      });
+      c.insights = ins.data?.[0] || null;
+    } catch (_) { c.insights = null; }
+    return c;
+  }));
+}
+
+async function fetchPageInsights() {
+  try {
+    // Get page ID first
+    const me = await fetchMeta('me/accounts', { fields: 'id,name', limit: 5 });
+    const page = me.data?.[0];
+    if (!page) return {};
+
+    const metrics = [
+      'page_impressions','page_impressions_organic','page_impressions_paid',
+      'page_reach','page_post_engagements',
+      'page_fans','page_fan_adds_unique',
+      'page_video_views','page_video_views_organic','page_video_views_paid'
+    ].join(',');
+
+    const insights = await fetchMeta(`${page.id}/insights`, {
+      metric: metrics,
+      period: 'day',
+      date_preset: getDatePreset()
+    });
+
+    const result = { page_id: page.id, page_name: page.name };
+    (insights.data || []).forEach(m => {
+      const latest = m.values?.[m.values.length - 1];
+      result[m.name] = latest?.value || 0;
+    });
+    return result;
+  } catch (_) { return {}; }
+}
+
+async function fetchPagePosts() {
+  try {
+    const me = await fetchMeta('me/accounts', { fields: 'id', limit: 1 });
+    const pageId = me.data?.[0]?.id;
+    if (!pageId) return [];
+
+    const posts = await fetchMeta(`${pageId}/posts`, {
+      fields: 'id,message,created_time,story,full_picture,attachments{media_type}',
+      limit: 20
+    });
+    const list = posts.data || [];
+
+    return Promise.all(list.map(async p => {
+      try {
+        const ins = await fetchMeta(`${p.id}/insights`, {
+          metric: 'post_impressions,post_impressions_organic,post_impressions_paid,post_reach,post_engaged_users,post_reactions_like_total,post_comments,post_shares'
+        });
+        const metrics = {};
+        (ins.data || []).forEach(m => {
+          metrics[m.name] = m.values?.[0]?.value || 0;
+        });
+        p.insights = metrics;
+      } catch (_) { p.insights = {}; }
+      return p;
+    }));
+  } catch (_) { return []; }
+}
+
+// ── Destination analysis ───────────────────────────────────
+function buildDestinationData(campaigns) {
+  const map = {};
+  Object.keys(DEST_KEYWORDS).forEach(d => {
+    map[d] = { spend:0, impressions:0, clicks:0, reach:0, conversions:0, campaigns:[] };
+  });
+
+  campaigns.forEach(c => {
+    const dest = detectDestination(c.name);
+    const ins  = c.insights || {};
+    if (!map[dest]) map[dest] = { spend:0, impressions:0, clicks:0, reach:0, conversions:0, campaigns:[] };
+    map[dest].spend        += parseFloat(ins.spend||0);
+    map[dest].impressions  += parseInt(ins.impressions||0);
+    map[dest].clicks       += parseInt(ins.clicks||0);
+    map[dest].reach        += parseInt(ins.reach||0);
+    map[dest].conversions  += getConversions(ins.actions);
+    map[dest].campaigns.push(c.name);
+  });
+
+  // Remove destinations with zero activity
+  destData = Object.fromEntries(Object.entries(map).filter(([,v]) => v.spend > 0 || v.campaigns.length > 0));
+}
+
+// ── Renderers ──────────────────────────────────────────────
+function renderMetrics(s, camps) {
+  const active = camps.filter(c => c.status === 'ACTIVE').length;
+  const spend  = parseFloat(s.spend) || 0;
+  const cards  = [
+    { label: 'Total Spend',   value: dollar(spend),                           sub: 'last period' },
+    { label: 'Impressions',   value: bigNum(s.impressions),                    sub: 'total' },
+    { label: 'Clicks',        value: bigNum(s.clicks),                         sub: 'total' },
+    { label: 'CTR',           value: pct(s.ctr),                               sub: 'avg click-through' },
+    { label: 'CPC',           value: dollar(s.cpc),                            sub: 'cost per click' },
+    { label: 'CPM',           value: dollar(s.cpm),                            sub: 'per 1k impressions' },
+    { label: 'Reach',         value: bigNum(s.reach),                          sub: 'unique people' },
+    { label: 'Active Camps',  value: active,                                   sub: camps.length + ' total' },
+  ];
+
+  document.getElementById('metricGrid').innerHTML = cards.map(c => `
+    <div class="metric-card">
+      <div class="m-label">${c.label}</div>
+      <div class="m-value">${c.value}</div>
+      <div class="m-sub">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderCampaigns(camps) {
+  const active  = camps.filter(c => c.status === 'ACTIVE').length;
+  const paused  = camps.filter(c => c.status === 'PAUSED').length;
+  document.getElementById('campLabel').textContent =
+    `Campaigns — ${camps.length} total · ${active} active · ${paused} paused`;
+
+  document.getElementById('campTable').innerHTML = camps.map(c => {
+    const ins   = c.insights || {};
+    const dest  = detectDestination(c.name);
+    const convs = getConversions(ins.actions);
+    const bc    = c.status === 'ACTIVE' ? 'badge-active' : c.status === 'PAUSED' ? 'badge-paused' : 'badge-deleted';
+    return `
+      <tr>
+        <td class="camp-name" title="${c.name}">${c.name}</td>
+        <td>${dest !== 'Other' ? `<span class="dest-tag">${dest}</span>` : '—'}</td>
+        <td><span class="badge ${bc}">${c.status.toLowerCase()}</span></td>
+        <td class="num">${ins.spend ? dollar(ins.spend) : '—'}</td>
+        <td class="num">${bigNum(ins.impressions)}</td>
+        <td class="num">${bigNum(ins.clicks)}</td>
+        <td class="num">${pct(ins.ctr)}</td>
+        <td class="num">${ins.cpc ? dollar(ins.cpc) : '—'}</td>
+        <td class="num">${bigNum(ins.reach)}</td>
+        <td class="num">${ins.actions ? convs : '—'}</td>
+      </tr>`;
+  }).join('');
+}
+
+function renderInsights(s, camps) {
+  const ctr   = parseFloat(s.ctr) || 0;
+  const cpc   = parseFloat(s.cpc) || 0;
+  const freq  = parseFloat(s.frequency) || 0;
+  const spend = parseFloat(s.spend) || 0;
+  const items = [];
+
+  if (ctr < 1)
+    items.push({ icon: '⚠️', title: `Low CTR (${ctr.toFixed(2)}%)`, desc: 'Below the 1–2% industry average for travel. Try destination-specific creatives, stronger hooks in ad copy, or refresh visuals for top destinations.' });
+  else if (ctr >= 2)
+    items.push({ icon: '🚀', title: `Strong CTR (${ctr.toFixed(2)}%)`, desc: 'Excellent engagement rate. Your destination creatives are resonating. Scale budget on top performers to maximise reach.' });
+  else
+    items.push({ icon: '✅', title: `Healthy CTR (${ctr.toFixed(2)}%)`, desc: 'On track with industry benchmarks. Test new destination-specific creatives to push above 2%.' });
+
+  if (freq > 3.5)
+    items.push({ icon: '🔁', title: `High Frequency (${freq.toFixed(1)}x)`, desc: 'Your audience is seeing the same ads too often. Rotate destination creatives, add new audiences, or use Advantage+ audience expansion.' });
+
+  if (cpc > 0.80)
+    items.push({ icon: '💰', title: `CPC is ${dollar(cpc)}`, desc: 'A/B test your ad copy and headlines. Lead-gen or message objectives often reduce CPC for travel brands vs. traffic objectives.' });
+
+  const topCamp = camps.filter(c => parseFloat(c.insights?.spend) > 0)
+    .sort((a,b) => parseFloat(b.insights.spend) - parseFloat(a.insights.spend))[0];
+  if (topCamp)
+    items.push({ icon: '📊', title: `Top Spender: ${topCamp.name}`, desc: `${dollar(topCamp.insights.spend)} of your total ${dollar(spend)} spend this period. Check its CTR and conversions — if strong, scale it further.` });
+
+  const pausedW = camps.filter(c => c.status === 'PAUSED' && parseFloat(c.insights?.spend) > 0);
+  if (pausedW.length)
+    items.push({ icon: '⏸️', title: `${pausedW.length} Paused Campaign(s) Had Spend`, desc: 'These campaigns spent before being paused. Review whether to reactivate them or redistribute their budgets to active campaigns.' });
+
+  const highCTR = camps.filter(c => parseFloat(c.insights?.ctr) >= 2 && parseFloat(c.insights?.spend) > 0);
+  if (highCTR.length)
+    items.push({ icon: '⭐', title: `${highCTR.length} Campaign(s) With CTR ≥ 2%`, desc: highCTR.map(c => c.name).join(', ') + '. Consider increasing budgets on these.' });
+
+  document.getElementById('insightsGrid').innerHTML = items.map(i => `
+    <div class="insight-card">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-body">
+        <div class="insight-title">${i.title}</div>
+        <div class="insight-desc">${i.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Destination rendering ──────────────────────────────────
+function renderDestinations() {
+  const entries = Object.entries(destData).sort((a,b) => b[1].spend - a[1].spend);
+  const maxSpend = entries[0]?.[1].spend || 1;
+
+  // Performance tiers
+  const allCTRs = entries.map(([,v]) => v.clicks / Math.max(v.impressions,1) * 100);
+  const avgCTR  = allCTRs.reduce((a,b)=>a+b,0)/Math.max(allCTRs.length,1);
+
+  document.getElementById('destGrid').innerHTML = entries.map(([dest, v]) => {
+    const ctr  = v.impressions > 0 ? (v.clicks / v.impressions * 100) : 0;
+    const perf = ctr >= avgCTR * 1.2 ? 'perf-top' : ctr >= avgCTR * 0.6 ? 'perf-mid' : 'perf-low';
+    const perfLabel = ctr >= avgCTR * 1.2 ? '🔥 Top Performer' : ctr >= avgCTR * 0.6 ? '⚡ Mid Tier' : '📉 Needs Attention';
+    const barW = Math.round(v.spend / maxSpend * 100);
+    return `
+      <div class="dest-card">
+        <div class="dest-name">${dest}</div>
+        <div class="dest-spend">${dollar(v.spend)}</div>
+        <div class="dest-meta">${bigNum(v.impressions)} impr · ${bigNum(v.clicks)} clicks · CTR ${ctr.toFixed(2)}%</div>
+        <div class="dest-bar-wrap"><div class="dest-bar" style="width:${barW}%"></div></div>
+        <span class="dest-perf ${perf}">${perfLabel}</span>
+      </div>`;
+  }).join('') || '<div class="no-data">No destination data available yet.</div>';
+
+  renderDestChart('spend');
+  renderDestInsights(entries, avgCTR);
+}
+
+function renderDestChart(metric) {
+  const entries = Object.entries(destData)
+    .filter(([,v]) => v.spend > 0 || v.impressions > 0)
+    .sort((a,b) => b[1].spend - a[1].spend)
+    .slice(0, 12);
+
+  const labels = entries.map(([d]) => d);
+  const values = entries.map(([,v]) => {
+    if (metric === 'spend') return v.spend.toFixed(2);
+    if (metric === 'clicks') return v.clicks;
+    if (metric === 'ctr') return v.impressions > 0 ? (v.clicks/v.impressions*100).toFixed(2) : 0;
+    return 0;
+  });
+
+  if (destChartObj) destChartObj.destroy();
+  const ctx = document.getElementById('destChart');
+  destChartObj = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: labels.map((_,i) => i === 0 ? '#5D6A3A' : '#B0C854' + Math.round(200 - i*12).toString(16)),
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#6b7a58', font: { size: 11 } }, grid: { display: false } },
+        y: { ticks: { color: '#6b7a58', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function switchDestChart(metric, btn) {
+  document.querySelectorAll('#tab-destinations .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDestChart(metric);
+}
+
+function renderDestInsights(entries, avgCTR) {
+  const items = [];
+  const sorted = [...entries].sort((a,b) => b[1].spend - a[1].spend);
+  const topDest  = sorted[0];
+  const lowDests = entries.filter(([,v]) => {
+    const ctr = v.impressions > 0 ? (v.clicks/v.impressions*100) : 0;
+    return ctr < avgCTR * 0.5 && v.spend > 0;
+  });
+  const starDests = entries.filter(([,v]) => {
+    const ctr = v.impressions > 0 ? (v.clicks/v.impressions*100) : 0;
+    return ctr >= avgCTR * 1.3;
+  });
+
+  if (topDest)
+    items.push({ icon: '💸', title: `${topDest[0]} — Highest Spend`, desc: `${dollar(topDest[1].spend)} spent with ${bigNum(topDest[1].impressions)} impressions. Verify conversion quality and consider whether this budget is producing leads or bookings.` });
+
+  if (starDests.length)
+    items.push({ icon: '🌟', title: `Top Performing: ${starDests.map(([d])=>d).join(', ')}`, desc: `These destinations show above-average CTR. Prioritise budget here — the audience is clearly interested. Create more reels and carousel content for these.` });
+
+  if (lowDests.length)
+    items.push({ icon: '📉', title: `Underperforming: ${lowDests.map(([d])=>d).join(', ')}`, desc: `CTR well below average despite spend. Refresh creatives, tighten targeting to travel-intent audiences, or pause and reallocate to better-performing destinations.` });
+
+  const zeroCamps = entries.filter(([,v]) => v.spend === 0 && v.campaigns.length > 0);
+  if (zeroCamps.length)
+    items.push({ icon: '💤', title: `${zeroCamps.map(([d])=>d).join(', ')} — No Spend Recorded`, desc: 'Campaigns detected for these destinations but no spend in the selected period. Check if they are paused or if budgets are depleted.' });
+
+  const totalSpend = entries.reduce((s,[,v])=>s+v.spend,0);
+  const topShare   = topDest ? (topDest[1].spend/Math.max(totalSpend,1)*100).toFixed(0) : 0;
+  if (topShare > 60)
+    items.push({ icon: '⚖️', title: 'Spend Concentration Risk', desc: `${topDest?.[0]} accounts for ${topShare}% of total spend. Diversifying budget across 3–5 active destinations reduces risk and helps identify new high-performers.` });
+
+  document.getElementById('destInsightsGrid').innerHTML = items.map(i => `
+    <div class="insight-card">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-body">
+        <div class="insight-title">${i.title}</div>
+        <div class="insight-desc">${i.desc}</div>
+      </div>
+    </div>`).join('') || '<div class="no-data">Not enough destination data to generate insights.</div>';
+}
+
+// ── Page insights rendering ────────────────────────────────
+function renderPageInsights() {
+  const p = pageInsightsData;
+  const name = p.page_name || 'Go Holidays';
+
+  const cards = [
+    { label: 'Total Impressions', value: bigNum(p.page_impressions||0), sub: 'organic + paid', cls: '' },
+    { label: 'Organic Impressions', value: bigNum(p.page_impressions_organic||0), sub: 'organic only', cls: 'pm-organic' },
+    { label: 'Paid Impressions', value: bigNum(p.page_impressions_paid||0), sub: 'from ads', cls: 'pm-paid' },
+    { label: 'Page Reach', value: bigNum(p.page_reach||0), sub: 'unique people reached', cls: '' },
+    { label: 'Post Engagements', value: bigNum(p.page_post_engagements||0), sub: 'likes, comments, shares', cls: 'pm-organic' },
+    { label: 'Page Fans', value: bigNum(p.page_fans||0), sub: 'total followers', cls: '' },
+    { label: 'New Fans', value: bigNum(p.page_fan_adds_unique||0), sub: 'this period', cls: 'pm-organic' },
+    { label: 'Video Views', value: bigNum(p.page_video_views||0), sub: 'organic + paid', cls: '' },
+    { label: 'Organic Video Views', value: bigNum(p.page_video_views_organic||0), sub: 'organic reels/videos', cls: 'pm-organic' },
+    { label: 'Paid Video Views', value: bigNum(p.page_video_views_paid||0), sub: 'from boosted content', cls: 'pm-paid' },
+  ];
+
+  document.getElementById('pageGrid').innerHTML = cards.map(c => `
+    <div class="page-metric ${c.cls}">
+      <div class="pm-label">${c.label}</div>
+      <div class="pm-value">${c.value}</div>
+      <div class="pm-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderPosts() {
+  if (!pagePosts.length) {
+    document.getElementById('postsTable').innerHTML = '<tr><td colspan="9" class="no-data">No post data available.</td></tr>';
+    return;
+  }
+
+  document.getElementById('postsTable').innerHTML = pagePosts.map(p => {
+    const ins   = p.insights || {};
+    const msg   = (p.message || p.story || 'No caption').substring(0, 60) + '…';
+    const date  = p.created_time ? new Date(p.created_time).toLocaleDateString('en-GB') : '—';
+    const type  = p.attachments?.data?.[0]?.media_type || 'photo';
+    const typeLabel = type === 'video' ? '🎬 Reel/Video' : type === 'album' ? '🖼️ Carousel' : '📷 Photo';
+    return `
+      <tr>
+        <td class="camp-name" title="${p.message||''}">${msg}</td>
+        <td>${typeLabel}</td>
+        <td class="num">${date}</td>
+        <td class="num">${bigNum(ins.post_reach)}</td>
+        <td class="num">${bigNum(ins.post_impressions)}</td>
+        <td class="num">${bigNum(ins.post_engaged_users)}</td>
+        <td class="num">${bigNum(ins.post_reactions_like_total)}</td>
+        <td class="num">${bigNum(ins.post_comments)}</td>
+        <td class="num">${bigNum(ins.post_shares?.count ?? ins.post_shares ?? 0)}</td>
+      </tr>`;
+  }).join('');
+
+  // Page chart with post reach over time
+  const labels = pagePosts.map(p => p.created_time ? new Date(p.created_time).toLocaleDateString('en-GB', {day:'2-digit',month:'short'}) : '').reverse();
+  const reachVals = pagePosts.map(p => p.insights?.post_reach || 0).reverse();
+  const engVals   = pagePosts.map(p => p.insights?.post_engaged_users || 0).reverse();
+
+  window._pageChartData = { labels, reach: reachVals, engagement: engVals };
+  renderPageChart('reach');
+}
+
+function renderPageChart(metric) {
+  const d = window._pageChartData;
+  if (!d) return;
+  const values = metric === 'reach' ? d.reach : d.engagement;
+  const color  = metric === 'reach' ? '#5D6A3A' : '#B0C854';
+  if (pageChartObj) pageChartObj.destroy();
+  pageChartObj = new Chart(document.getElementById('pageChart'), {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [{
+        data: values,
+        borderColor: color,
+        backgroundColor: color + '22',
+        fill: true, tension: 0.35, pointRadius: 3, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#6b7a58', font: { size: 11 }, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } },
+        y: { ticks: { color: '#6b7a58', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function switchPageChart(metric, btn) {
+  document.querySelectorAll('#tab-page .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPageChart(metric);
+}
+
+// ── Trend chart ────────────────────────────────────────────
+function renderChart(daily, metric) {
+  const labels = daily.map(d => d.date_start?.slice(5) || '');
+  const values = daily.map(d => parseFloat(d[metric]) || 0);
+  const colors = { spend: '#5D6A3A', clicks: '#B0C854', impressions: '#2d7a3a', reach: '#6b7a58' };
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: colors[metric] || '#5D6A3A',
+        backgroundColor: (colors[metric] || '#5D6A3A') + '20',
+        fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#6b7a58', font: { size: 11 }, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } },
+        y: { ticks: { color: '#6b7a58', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function switchChart(metric, btn) {
+  currentChartMetric = metric;
+  document.querySelectorAll('#tab-ads .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart(trendDaily, metric);
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.main-tab').forEach((t,i) => {
+    const tabId = ['ads','destinations','page'][i];
+    t.classList.toggle('active', tabId === id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+
+</script>
+</body>
+</html>
