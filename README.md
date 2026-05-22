@@ -8,7 +8,7 @@ This guide is for the social media team to manage the dashboard independently. N
 
 The dashboard has two parts:
 
-1. **The dashboard file** (`go_holidays_meta_dashboard.html`) — hosted on GitHub Pages. This is what you open in your browser.
+1. **The dashboard file** (`index.html`) — hosted on GitHub Pages. This is what you open in your browser.
 2. **The Google Apps Script proxy** — a small script that sits between the dashboard and Meta's API. It's what actually fetches your ad data.
 
 When the proxy URL expires, the dashboard will tell you and ask for a new one. This guide walks you through fixing that.
